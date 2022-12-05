@@ -1,0 +1,15 @@
+/home/alabai/studies/concurrency/hw3/bin/Debug/net6.0/hw3
+/home/alabai/studies/concurrency/hw3/bin/Debug/net6.0/hw3.deps.json
+/home/alabai/studies/concurrency/hw3/bin/Debug/net6.0/hw3.runtimeconfig.json
+/home/alabai/studies/concurrency/hw3/bin/Debug/net6.0/hw3.dll
+/home/alabai/studies/concurrency/hw3/bin/Debug/net6.0/hw3.pdb
+/home/alabai/studies/concurrency/hw3/obj/Debug/net6.0/hw3.csproj.AssemblyReference.cache
+/home/alabai/studies/concurrency/hw3/obj/Debug/net6.0/hw3.GeneratedMSBuildEditorConfig.editorconfig
+/home/alabai/studies/concurrency/hw3/obj/Debug/net6.0/hw3.AssemblyInfoInputs.cache
+/home/alabai/studies/concurrency/hw3/obj/Debug/net6.0/hw3.AssemblyInfo.cs
+/home/alabai/studies/concurrency/hw3/obj/Debug/net6.0/hw3.csproj.CoreCompileInputs.cache
+/home/alabai/studies/concurrency/hw3/obj/Debug/net6.0/hw3.dll
+/home/alabai/studies/concurrency/hw3/obj/Debug/net6.0/refint/hw3.dll
+/home/alabai/studies/concurrency/hw3/obj/Debug/net6.0/hw3.pdb
+/home/alabai/studies/concurrency/hw3/obj/Debug/net6.0/hw3.genruntimeconfig.cache
+/home/alabai/studies/concurrency/hw3/obj/Debug/net6.0/ref/hw3.dll
