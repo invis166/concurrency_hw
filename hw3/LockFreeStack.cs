@@ -41,19 +41,27 @@ namespace laba
         public void Push(T item)
         {
             var newNode = new StackNode<T>(item, head);
-            do 
+            newNode.next = head.next;
+            while (!CompareAndExchange(ref head.next, newNode, newNode.next))
             {
+                Thread.Sleep(10);
                 newNode.next = head.next;
-            } 
-            while (!CompareAndExchange(ref head.next, newNode, newNode.next));
+            }
             Interlocked.Increment(ref itemsCount);
         }
 
         public bool TryPop(out T item)
         {
             StackNode<T> top;
-            do
+            top = head.next;
+
+            if (top == null) {
+                item = default(T);
+                return false;
+            }
+            while (!CompareAndExchange(ref head.next, top.next, top))
             {
+                Thread.Sleep(10);
                 top = head.next;
 
                 if (top == null) {
@@ -61,7 +69,6 @@ namespace laba
                     return false;
                 }
             }
-            while (!CompareAndExchange(ref head.next, top.next, top));
 
             item = top.value;
             Interlocked.Decrement(ref itemsCount);
