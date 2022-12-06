@@ -1,95 +1,158 @@
 using System;
+using System.Collections.Concurrent;
 
 
 namespace laba
 {
-    public interface IStack<T>
+    class Program
     {
-        void Push(T item);
-        bool TryPop(out T item);
-        int Count { get; }
-    }
-    class StackNode<T>
-    {
-        public T? value;
-        public StackNode<T>? next;
-
-        public StackNode()
+        public class ValueThread
         {
-            this.value = default(T);
-            this.next = null;
-        }
+            public int Value;
+            public int ThreadNumber; 
 
-        public StackNode(T? value, StackNode<T>? next)
-        {
-            this.value = value;
-            this.next = next;
-        }
-    }
-
-    public class LockFreeStack<T> : IStack<T>
-    {
-        private StackNode<T> head;
-        private int itemsCount;
-        public int Count { get => itemsCount;}
-
-        public LockFreeStack()
-        {
-            head = new StackNode<T>();
-        }
-
-        public void Push(T item)
-        {
-            var newNode = new StackNode<T>(item, head);
-            do 
+            public ValueThread(int value, int threadNumber)
             {
-                newNode.next = head.next;
-            } 
-            while (!CompareAndExchange(ref head.next, newNode, newNode.next));
-            Interlocked.Increment(ref itemsCount);
+                Value = value;
+                ThreadNumber = threadNumber;
+            }
         }
 
-        public bool TryPop(out T item)
+        public static void Main()
         {
-            StackNode<T> top;
-            do
-            {
-                top = head.next;
+            Console.WriteLine("Tests passed: " + (RunPushTest() & RunPopTests()));
+        }
 
-                if (top == null) {
-                    item = default(T);
-                    return false;
+        public static void PushValuesToStack(IEnumerable<int> values, LockFreeStack<int> stack)
+        {
+            foreach (var value in values)
+            {
+                stack.Push(value);
+            }
+        }
+
+        public static void PopValuesFromStack(List<ValueThread> values, LockFreeStack<int> stack)
+        {
+            int value;
+            while (stack.TryPop(out value))
+            {
+                lock (values)
+                {
+                    values.Add(new ValueThread(value, Thread.CurrentThread.ManagedThreadId));
                 }
             }
-            while (!CompareAndExchange(ref head.next, top.next, top));
+        }
 
-            item = top.value;
-            Interlocked.Decrement(ref itemsCount);
+        public static List<int> GetOddNumbers(int maxNumber)
+        {
+            var numbers = new List<int>();
+            var current = 1;
+            while (current < maxNumber)
+            {
+                numbers.Add(current);
+                current += 2;
+            }
+
+            return numbers;
+        }
+
+        public static List<int> GetEvenNumbers(int maxNumber)
+        {
+            var numbers = new List<int>();
+            var current = 0;
+            while (current < maxNumber)
+            {
+                numbers.Add(current);
+                current += 2;
+            }
+
+            return numbers;
+        }
+
+        public static List<int> GetSequentialNumbers(int maxNumber)
+        {
+            var numbers = new List<int>();
+            var current = 0;
+            while (current < maxNumber)
+            {
+                numbers.Add(current);
+                current += 1;
+            }
+
+            return numbers;
+        }
+
+        public static bool IsDecreasinSequence(IEnumerable<int> values)
+        {
+            var current = values.First();
+            foreach (var value in values.Skip(1))
+            {
+                if (value >= current)
+                {
+                    return false;
+                }
+                current = value;
+            }
 
             return true;
         }
 
-        static bool CompareAndExchange(ref StackNode<T> location, StackNode<T> value, StackNode<T> comparand)
+        public static void StartTasksAndWait(IEnumerable<Task> tasks)
         {
-            return comparand == Interlocked.CompareExchange<StackNode<T>>(ref location, value, comparand);
+            foreach (var task in tasks)
+            {
+                task.Start();
+            }
+            Task.WaitAll(tasks.ToArray());
         }
-    }
 
-    class Program
-    {
-        public static void Main()
+        public static bool RunPushTest()
         {
             var stack = new LockFreeStack<int>();
-            stack.Push(3);
-            stack.Push(4);
-            stack.Push(5);
-            stack.Push(6);
-            stack.Push(7);
-            int top;
-            while (stack.TryPop(out top))
+            var oddNumbers = GetOddNumbers(99);
+            var evenNumbers = GetEvenNumbers(100);
+
+            // pushing values to stack concurrenly
+            var pushTasks = new List<Task>();
+            pushTasks.Add(new Task(() => PushValuesToStack(oddNumbers, stack)));
+            pushTasks.Add(new Task(() => PushValuesToStack(evenNumbers, stack)));
+            StartTasksAndWait(pushTasks);
+
+            var stackValues = new List<int>();
+            int value;
+            while (stack.TryPop(out value))
             {
-                Console.WriteLine(top);
+                stackValues.Add(value);
             }
+
+            var stackEvenValues = stackValues.Where(x => x % 2 == 0).Reverse().ToList<int>();
+            var stackOddValues = stackValues.Where(x => x % 2 == 1).Reverse().ToList<int>();
+
+            // order of the elements should be the same
+            return stackEvenValues.SequenceEqual(evenNumbers) && stackOddValues.SequenceEqual(oddNumbers);
+        }
+
+        public static bool RunPopTests()
+        {
+            var stack = new LockFreeStack<int>();
+            var evenNumbers = GetSequentialNumbers(100);
+            PushValuesToStack(evenNumbers, stack);
+
+            // popping values from stack concurrently 
+            var poppedValues = new List<ValueThread>();
+            var tasksNumber = 10;
+            var poppingTasks = new List<Task>();
+            for (var i = 0; i < tasksNumber; i++)
+            {
+                poppingTasks.Add(new Task(() => PopValuesFromStack(poppedValues, stack)));
+            }
+            StartTasksAndWait(poppingTasks);
+
+            // values popped from each thread should be in decreasing order (LIFO order)
+            return poppedValues
+                .GroupBy(x => x.ThreadNumber)
+                .Select(x => IsDecreasinSequence(x.Select(y => y.Value)))
+                .All(x => x);
         }
     }
 }
