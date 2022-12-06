@@ -9,23 +9,6 @@ namespace laba
         bool TryPop(out T item);
         int Count { get; }
     }
-    class StackNode<T>
-    {
-        public T? value;
-        public StackNode<T>? next;
-
-        public StackNode()
-        {
-            this.value = default(T);
-            this.next = null;
-        }
-
-        public StackNode(T? value, StackNode<T>? next)
-        {
-            this.value = value;
-            this.next = next;
-        }
-    }
 
     public class LockFreeStack<T> : IStack<T>
     {
