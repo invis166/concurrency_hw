@@ -12,22 +12,17 @@ namespace TPL
 	{
 		public Task Scan(IPAddress[] ipAddrs, int[] ports)
 		{
-			foreach(var ipAddr in ipAddrs)
-			{
-				ScanIpAddr(ipAddr, ports);
-			}
-
-			return Task.CompletedTask;
+			return Task.WhenAll(ipAddrs.Select(ipAddr => ScanIpAddr(ipAddr, ports)));
 		}
 
-		public void ScanIpAddr(IPAddress ipAddr, int[] ports)
+		public Task ScanIpAddr(IPAddress ipAddr, int[] ports)
 		{
 			var ipStatus = Task.Run(() => PingAddrAsync(ipAddr)).Result;
 			if (ipStatus != IPStatus.Success)
 			{
-				return;
+				return Task.CompletedTask;
 			}
-			Task.WhenAll(ports.Select(port => CheckPortAsync(ipAddr, port))).Wait();
+			return Task.WhenAll(ports.Select(port => CheckPortAsync(ipAddr, port)));
 		}
 
 		private IPStatus PingAddrAsync(IPAddress ipAddr, int timeout = 3000) 
