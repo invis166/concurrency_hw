@@ -43,13 +43,16 @@ namespace TPL
 
 		private static Task CheckPortAsync(IPAddress ipAddr, int port, int timeout = 3000)
 		{
-			using var tcpClient = new TcpClient();
+			var tcpClient = new TcpClient();
 			
 			Console.WriteLine($"Checking {ipAddr}:{port}");
 			var task = tcpClient.ConnectAsync(ipAddr, port, timeout).ContinueWith(t =>
 				{
 					Console.WriteLine($"Checked {ipAddr}:{port} - {t.Result}");
-				}, TaskContinuationOptions.OnlyOnRanToCompletion);
+				}, TaskContinuationOptions.OnlyOnRanToCompletion
+				).ContinueWith(t => {
+					tcpClient.Dispose();
+				});
 
 			return task;
 		}
