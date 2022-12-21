@@ -15,25 +15,28 @@ namespace TPL
 			return Task.WhenAll(ipAddrs.Select(ipAddr => ScanIpAddr(ipAddr, ports)));
 		}
 
-		public Task ScanIpAddr(IPAddress ipAddr, int[] ports)
+		public Task ScanIpAddr(IPAddress ipAddr, int[] ports, int timeout = 3000)
 		{
-			var ipStatus = Task.Run(() => PingAddrAsync(ipAddr)).Result;
-			if (ipStatus != IPStatus.Success)
-			{
-				return Task.CompletedTask;
-			}
-			return Task.WhenAll(ports.Select(port => CheckPortAsync(ipAddr, port)));
-		}
-
-		private IPStatus PingAddrAsync(IPAddress ipAddr, int timeout = 3000) 
-		{
-			using var ping = new Ping();
+			var ping = new Ping();
 
 			Console.WriteLine($"Pinging {ipAddr}");
-			var status = Task.Run(() => ping.SendPingAsync(ipAddr, timeout)).Result.Status;
-			Console.WriteLine($"Pinged {ipAddr}: {status}");
-			
-			return status;
+
+			var task = ping.SendPingAsync(ipAddr, timeout)
+			.ContinueWith(t => 
+			{
+				Console.WriteLine($"Pinged {ipAddr}: {t.Result.Status}");
+				return t.Result.Status;
+			}, TaskContinuationOptions.OnlyOnRanToCompletion)
+			.ContinueWith(t => {
+				ping.Dispose();
+				if (t.Result == IPStatus.Success)
+				{
+					Task.WhenAll(ports.Select(port => CheckPortAsync(ipAddr, port))).Wait();
+				}
+
+			}, TaskContinuationOptions.OnlyOnRanToCompletion);
+
+			return task;
 		}
 
 		private static Task CheckPortAsync(IPAddress ipAddr, int port, int timeout = 3000)
